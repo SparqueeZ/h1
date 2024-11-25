@@ -7,5 +7,11 @@ router.get("/teachers", teacherController.getAllTeachers);
 router.get("/teacher/:id", teacherController.getTeacherById);
 router.post("/teacher", teacherController.createTeacher);
 router.put("/teacher/:id", teacherController.updateTeacher);
+router.delete("/teacher/:id", teacherController.deleteTeacher);
+
+router.post(
+  "/teacher/addToPromotion",
+  teacherController.affectTeacherToPromotion
+);
 
 module.exports = router;

@@ -23,6 +23,12 @@ const PromotionSchema = new Schema({
       ref: "Teacher",
     },
   ],
+  lessons: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Lesson",
+    },
+  ],
 });
 
 module.exports = mongoose.model("Promotion", PromotionSchema);

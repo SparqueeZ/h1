@@ -19,10 +19,12 @@ const studentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  class: {
-    type: String,
-    required,
-  },
+  promotions: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Promotion",
+    },
+  ],
 });
 
 module.exports = mongoose.model("Student", studentSchema);

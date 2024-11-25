@@ -1,5 +1,5 @@
 const express = require("express");
-// const bodyParser = require("body-parser");
+const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const dbConfig = require("./config/db");
 const http = require("http");
@@ -7,6 +7,9 @@ const http = require("http");
 // const cors = require("cors");
 // const cookieParser = require("cookie-parser");
 const teacherRoutes = require("./routes/teacherRoutes");
+const studentRoutes = require("./routes/studentRoutes");
+const promotionRoutes = require("./routes/promotionRoutes");
+const lessonRoutes = require("./routes/lessonRoutes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,7 +18,7 @@ const port = process.env.PORT || 3000;
 const server = http.createServer(app);
 
 // Middleware
-// app.use(bodyParser.json());
+app.use(bodyParser.json());
 // app.use(cookieParser());
 // app.use(
 //   cors({
@@ -25,11 +28,11 @@ const server = http.createServer(app);
 //   })
 // );
 
-// app.use("/api/messages", messageRoutes);
-// app.use("/api/rooms", roomRoutes);
-// app.use("/api/users", userRoutes);
-
-app.use("/api/teacher", teacherRoutes);
+// Routes
+app.use("/api", teacherRoutes);
+app.use("/api", studentRoutes);
+app.use("/api", promotionRoutes);
+app.use("/api", lessonRoutes);
 
 mongoose
   .connect(dbConfig.url, { useNewUrlParser: true, useUnifiedTopology: true })
