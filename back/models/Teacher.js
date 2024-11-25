@@ -19,7 +19,7 @@ const teacherSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  promotion: [
+  promotions: [
     {
       type: Schema.Types.ObjectId,
       ref: "Promotion",

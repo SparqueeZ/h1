@@ -19,14 +19,25 @@ const LessonSchema = new Schema({
     type: Number,
     required: true,
   },
-  teacher: {
-    type: String,
-    required: true,
-  },
+  teachers: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      required: false,
+    },
+  ],
   students: [
     {
       type: Schema.Types.ObjectId,
       ref: "Student",
+      required: false,
+    },
+  ],
+  promotions: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Promotion",
+      required: false,
     },
   ],
 });
