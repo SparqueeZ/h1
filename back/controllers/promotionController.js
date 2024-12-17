@@ -1,5 +1,6 @@
 const Promotion = require("../models/Promotion");
 const Lesson = require("../models/Lesson");
+const Student = require("../models/Student");
 
 exports.getAllPromotions = async (req, res) => {
   try {
@@ -48,15 +49,21 @@ exports.deletePromotion = async (req, res) => {
 };
 
 exports.affectLessonToPromotion = async (req, res) => {
-  console.log(req.body);
   try {
+    // Ajoute les la lesson dans la liste des lessons de promotion
     const promotion = await Promotion.findById(req.body.promotionId);
-    console.log(promotion);
     promotion.lessons.push(req.body.lessonId);
     await promotion.save();
+    // Ajoute la promotion dans la liste des promotions de lesson
     const lesson = await Lesson.findById(req.body.lessonId);
     lesson.promotions.push(req.body.promotionId);
     await lesson.save();
+    // Ajoute tous les étudiants d'une promotion dans la liste des étudiants de lesson
+    const students = await Student.find({ promotions: req.body.promotionId });
+    students.forEach(async (student) => {
+      lesson.students.push(student._id);
+      await lesson.save();
+    });
     res.json({ message: "Lesson succesfully affected to the promotion" });
   } catch (error) {
     res.status(400).json({ message: error.message });

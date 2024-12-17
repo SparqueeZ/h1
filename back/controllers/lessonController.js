@@ -1,4 +1,5 @@
 const Lesson = require("../models/Lesson");
+const Teacher = require("../models/Teacher");
 
 exports.getAllLessons = async (req, res) => {
   try {
@@ -19,8 +20,9 @@ exports.getLessonById = async (req, res) => {
 };
 
 exports.createLesson = async (req, res) => {
+  const lessonObject = req.body;
   try {
-    const lesson = new Lesson(req.body);
+    const lesson = new Lesson(lessonObject);
     await lesson.save();
     res.json({ message: "Lesson created" });
   } catch (error) {
@@ -41,6 +43,22 @@ exports.deleteLesson = async (req, res) => {
   try {
     await Lesson.findByIdAndDelete(req.params.id);
     res.json({ message: "Lesson deleted" });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+exports.affectTeacherToLesson = async (req, res) => {
+  try {
+    // Add the teacher to the lesson's list of teachers
+    const lesson = await Lesson.findById(req.params.id);
+    lesson.teachers.push(req.body.teacherId);
+    await lesson.save();
+    // Add the lesson to the teacher's list of lessons
+    const teacher = await Teacher.findById(req.body.teacherId);
+    teacher.lessons.push(req.params.id);
+    await teacher.save();
+    res.json({ message: "Teacher succesfully affected to the lesson" });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
