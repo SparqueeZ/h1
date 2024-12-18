@@ -22,14 +22,21 @@ class _SplashScreenState extends State<SplashScreen> {
       // Requête à l'API pour récupérer les informations de l'utilisateur
       final response = await http.get(
         Uri.parse(apiUrl),
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {'token': '$token'},
       );
 
       if (response.statusCode == 200) {
         // L'API a renvoyé les informations de l'utilisateur
         final data = jsonDecode(response.body);
-        print (data);
-        return data['role']; // Assurez-vous que le champ 'role' existe dans la réponse
+        print(data);
+
+        // Accéder à la liste 'roles' et récupérer le premier rôle
+        List<dynamic>? roles = data['user']['roles'];
+        if (roles != null && roles.isNotEmpty) {
+          return roles[0]; // Retourner le premier rôle
+        } else {
+          throw Exception('Aucun rôle trouvé dans les données utilisateur.');
+        }
       } else {
         throw Exception('Erreur lors de la récupération du rôle.');
       }
@@ -64,13 +71,13 @@ class _SplashScreenState extends State<SplashScreen> {
 
       // Redirection selon le rôle
       switch (role) {
-        case 'eleve':
+        case 'student':
           Navigator.pushReplacementNamed(context, '/homeEleve');
           break;
-        case 'professeur':
+        case 'teacher':
           Navigator.pushReplacementNamed(context, '/homeProfessor');
           break;
-        case 'admin':
+        case 'moderator':
           Navigator.pushReplacementNamed(context, '/homeAdministration');
           break;
         default:
