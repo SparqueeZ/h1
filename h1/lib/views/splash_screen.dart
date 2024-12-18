@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,15 +13,49 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   final secureStorage = const FlutterSecureStorage();
 
+  // URL de l'API pour récupérer les informations de l'utilisateur
+  final String apiUrl = 'http://172.20.10.2:3000/api/auth/data'; // Remplacez par votre URL API
+
+  // Fonction pour récupérer le rôle depuis l'API en utilisant le token JWT
+  Future<String?> _fetchUserRole(String token) async {
+    try {
+      // Requête à l'API pour récupérer les informations de l'utilisateur
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        // L'API a renvoyé les informations de l'utilisateur
+        final data = jsonDecode(response.body);
+        print (data);
+        return data['role']; // Assurez-vous que le champ 'role' existe dans la réponse
+      } else {
+        throw Exception('Erreur lors de la récupération du rôle.');
+      }
+    } catch (e) {
+      print("Erreur lors de la récupération du rôle : $e");
+      return null; // Retourner null en cas d'erreur
+    }
+  }
+
   // Fonction pour gérer la redirection basée sur le rôle
   Future<void> _redirectBasedOnRole() async {
     try {
       // Récupérer le token depuis le stockage sécurisé
       String? token = await secureStorage.read(key: 'auth_token');
-      String? role = await secureStorage.read(key: 'user_role'); // Récupérer le rôle
 
-      if (token == null || role == null) {
-        // Si aucun token ou rôle n'est trouvé, redirection vers la page de login
+      if (token == null) {
+        // Si aucun token n'est trouvé, redirection vers la page de login
+        Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+
+      // Récupérer le rôle en envoyant une requête à l'API
+      String? role = await _fetchUserRole(token);
+
+      if (role == null) {
+        // Si le rôle est introuvable, redirection vers la page de login
         Navigator.pushReplacementNamed(context, '/login');
         return;
       }

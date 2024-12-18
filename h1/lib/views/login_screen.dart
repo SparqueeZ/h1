@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:hive/hive.dart';
+import 'package:http/http.dart' as http;
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -12,65 +13,54 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
 
+  // URL de l'API pour la connexion
+  final String apiUrl = 'http://172.20.10.2:3000/api/auth/login';
+
   // Méthode pour vérifier les identifiants et récupérer le token
   Future<void> _login() async {
     try {
       final email = emailController.text;
       final password = passwordController.text;
 
-      // Vérification dans la table des élèves
-      final eleveBox = await Hive.openBox('eleves');
-      final eleve = eleveBox.values.firstWhere(
-            (user) => user['email'] == email && user['password'] == password,
-        orElse: () => null,
-      );
-
-      // Vérification dans la table des professeurs
-      final professeurBox = await Hive.openBox('professeurs');
-      final professeur = professeurBox.values.firstWhere(
-            (user) => user['email'] == email && user['password'] == password,
-        orElse: () => null,
-      );
-
-      // Vérification dans la table des administrateurs
-      final adminBox = await Hive.openBox('administration');
-      final admin = adminBox.values.firstWhere(
-            (user) => user['email'] == email && user['password'] == password,
-        orElse: () => null,
-      );
-
-      String? token;
-      String? role;
-
-      // Si un utilisateur est trouvé, récupérer le token et définir le rôle
-      if (eleve != null) {
-        token = eleve['token'];
-        role = 'eleve';  // Rôle d'élève
-      } else if (professeur != null) {
-        token = professeur['token'];
-        role = 'professeur';  // Rôle de professeur
-      } else if (admin != null) {
-        token = admin['token'];
-        role = 'administration';  // Rôle d'administrateur
+      // Vérification des champs vides
+      if (email.isEmpty || password.isEmpty) {
+        _showErrorDialog('Veuillez remplir tous les champs.');
+        return;
       }
 
-      // Si l'utilisateur est trouvé et qu'un token est disponible
-      if (token != null && role != null) {
-        // Stocker à la fois le token et le rôle
-        await secureStorage.write(key: 'auth_token', value: token);
-        await secureStorage.write(key: 'user_role', value: role);
+      // Envoi de la requête POST à l'API
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      );
 
-        // Rediriger vers le SplashScreen
-        Navigator.pushReplacementNamed(context, '/splash');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['token']; // Le token renvoyé par l'API
+
+
+        // L'API a renvoyé un token
+        if (token != null) {
+          // Stocker le token
+          await secureStorage.write(key: 'auth_token', value: token);
+          // Rediriger vers le SplashScreen
+          Navigator.pushReplacementNamed(context, '/splash');
+        } else {
+          _showErrorDialog('Token non reçu. Vérifiez vos identifiants.');
+        }
       } else {
-        _showErrorDialog('Identifiants incorrects ou token absent.');
+        // Si la réponse n'est pas 200, afficher l'erreur
+        final errorMessage = jsonDecode(response.body)['message'] ?? 'Erreur inconnue.';
+        _showErrorDialog('Erreur de connexion : $errorMessage');
       }
     } catch (e) {
       _showErrorDialog('Erreur lors de la connexion : $e');
     }
   }
-
-
 
   // Méthode pour afficher un dialog d'erreur
   void _showErrorDialog(String message) {
@@ -175,8 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Text(
                   'Se connecter',
-                  style:
-                  TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
