@@ -9,4 +9,6 @@ router.post("/lesson", lessonController.createLesson);
 router.put("/lesson/:id", lessonController.updateLesson);
 router.delete("/lesson/:id", lessonController.deleteLesson);
 
+router.post("/lesson/addTeacher/:id", lessonController.affectTeacherToLesson);
+
 module.exports = router;

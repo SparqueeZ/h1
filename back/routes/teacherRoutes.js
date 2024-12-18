@@ -14,4 +14,6 @@ router.post(
   teacherController.affectTeacherToPromotion
 );
 
+router.get("/teacher/:id/lessons", teacherController.getTeacherLessons);
+
 module.exports = router;

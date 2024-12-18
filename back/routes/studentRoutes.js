@@ -15,4 +15,6 @@ router.post(
 );
 router.get("/student/:id/lessons", studentController.getStudentLessons);
 
+router.post("/student/:id", studentController.changeStudentPresentValue);
+
 module.exports = router;

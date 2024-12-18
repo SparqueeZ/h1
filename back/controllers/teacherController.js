@@ -1,5 +1,7 @@
 const Teacher = require("../models/Teacher");
 const Promotion = require("../models/Promotion");
+const Lesson = require("../models/Lesson");
+const mongoose = require("mongoose");
 
 exports.getAllTeachers = async (req, res) => {
   try {
@@ -20,7 +22,6 @@ exports.getTeacherById = async (req, res) => {
 };
 
 exports.createTeacher = async (req, res) => {
-  console.log(req.body);
   try {
     const teacher = new Teacher(req.body);
     await teacher.save();
@@ -51,12 +52,22 @@ exports.deleteTeacher = async (req, res) => {
 exports.affectTeacherToPromotion = async (req, res) => {
   try {
     const teacher = await Teacher.findById(req.body.teacherId);
-    teacher.promotions = req.body.promotionId;
+    teacher.promotions.push(req.body.promotionId);
     await teacher.save();
     const promotion = await Promotion.findById(req.body.promotionId);
     promotion.teachers.push(req.body.teacherId);
     await promotion.save();
     res.json({ message: "Teacher succesfully affected to the promotion" });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+exports.getTeacherLessons = async (req, res) => {
+  try {
+    // Find all lessons where the teacher is in the list of teachers
+    const lessons = await Lesson.find({ teachers: req.params.id });
+    res.json(lessons);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

@@ -1,8 +1,23 @@
 const mongoose = require("mongoose");
-
 const Schema = mongoose.Schema;
 
+const generateSessionToken = () => {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let token = "";
+  for (let i = 0; i < 5; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
+};
+
 const LessonSchema = new Schema({
+  sessionToken: {
+    type: String,
+    required: true,
+    unique: true,
+    default: generateSessionToken,
+  },
   title: {
     type: String,
     required: true,
@@ -28,9 +43,15 @@ const LessonSchema = new Schema({
   ],
   students: [
     {
-      type: Schema.Types.ObjectId,
-      ref: "Student",
-      required: false,
+      data: {
+        type: Schema.Types.ObjectId,
+        ref: "Student",
+        required: false,
+      },
+      isPresent: {
+        type: Boolean,
+        default: false,
+      },
     },
   ],
   promotions: [
@@ -41,5 +62,11 @@ const LessonSchema = new Schema({
     },
   ],
 });
+
+LessonSchema.methods.isTokenExpired = function () {
+  const expirationTime = new Date(this.date);
+  expirationTime.setMinutes(expirationTime.getMinutes() + this.duration);
+  return new Date() > expirationTime;
+};
 
 module.exports = mongoose.model("Lesson", LessonSchema);
