@@ -45,6 +45,7 @@ exports.login = async (req, res) => {
     res
       .status(200)
       .json({ message: "Succesfully authenticated", token: token });
+    console.log("Data sent : ", token);
   } catch (error) {
     res
       .status(500)
@@ -84,6 +85,8 @@ exports.getUserInfo = async (req, res) => {
         //   },
         // },
       });
+    } else if (user.roles.includes("moderator")) {
+      userInfo = await Moderator.findOne({ user: user._id }).populate({});
     }
 
     // Récupération des informations détaillées des promotions
