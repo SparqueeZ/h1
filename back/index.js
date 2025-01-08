@@ -24,8 +24,8 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: "*", // Permettre les requêtes de toutes les origines
-    credentials: true, // Enable credentials
+    origin: "*",
+    credentials: true,
   })
 );
 
@@ -37,7 +37,7 @@ app.use("/api", lessonRoutes);
 app.use("/api", authRoutes);
 
 mongoose
-  .connect(dbConfig.url, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(dbConfig.url)
   .then(() => console.log("Database connected"))
   .catch((err) => console.log("Database connection error:", err));
 

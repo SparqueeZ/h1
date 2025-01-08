@@ -13,8 +13,12 @@ router.post(
   "/student/addToPromotion",
   studentController.affectStudentToPromotion
 );
+router.post(
+  "/student/removeFromPromotion",
+  studentController.removeStudentFromPromotion
+);
 router.get("/student/:id/lessons", studentController.getStudentLessons);
 
-router.post("/student/:id", studentController.changeStudentPresentValue);
+router.post("/student/badge/:id", studentController.changeStudentPresentValue);
 
 module.exports = router;

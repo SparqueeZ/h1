@@ -1,44 +1,59 @@
 import 'package:flutter/material.dart';
-import 'package:h1/views/home_eleve_screen.dart';
-import 'package:h1/views/home_professor_screen.dart';
-import 'package:h1/views/home_administration_screen.dart';
-import 'package:h1/views/login_screen.dart';
-import 'package:h1/views/splash_screen.dart';
-import 'package:h1/services/database_service.dart';
-import 'package:hive_flutter/adapters.dart';
+import 'package:h1_baptiste/screens/calendar_view_screen.dart';
+import 'package:h1_baptiste/screens/profile_screen.dart';
+import 'package:h1_baptiste/splash_screen.dart';
+import 'package:h1_baptiste/home_page_screen.dart';
+import 'package:h1_baptiste/home_page_teacher_screen.dart';
+import 'home_page_moderator_screen.dart';
+import 'login_screen.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'models/lesson.dart';
+import 'models/promotion.dart';
+import 'models/student.dart';
+import 'models/teacher.dart';
+import 'models/user.dart';
+import 'time_of_day_adapter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'time_of_day_adapter.dart';
+import 'screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Hive.initFlutter(); // Initialise Hive pour Flutter
-  await Hive.openBox('userBox');
+  await Hive.initFlutter();
+  Hive.registerAdapter(UserAdapter());
+  Hive.registerAdapter(PromotionAdapter());
+  Hive.registerAdapter(LessonAdapter());
+  Hive.registerAdapter(TeacherAdapter());
+  Hive.registerAdapter(StudentAdapter());
+  Hive.registerAdapter(TimeOfDayAdapter());
 
+  await dotenv.load(fileName: "assets/.env");
 
-  // Initialiser la base de données Hive via DatabaseServices
-  await DatabaseServices.initializeHive();
-
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        fontFamily: 'Inter',
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      // Définition des routes
-      initialRoute: '/login', // Page de base, LoginScreen
+      // Define routes
+      initialRoute: '/login', // Initial page, LoginScreen
       routes: {
-        '/login': (context) => LoginScreen(), // Page de Login
-        '/splash': (context) => SplashScreen(), // SplashScreen
-        '/homeEleve': (context) => HomePageEleve(), // Page d'accueil Eleve
-        '/homeProfessor': (context) => HomePageProfessor(), // Page d'accueil Professor
-        '/homeAdministration': (context) => HomePageAdministration(), // Page d'accueil Administration
+        '/login': (context) => LoginScreen(),
+        '/splash': (context) => SplashScreen(),
+        '/home': (context) => const HomePageScreen(),
+        '/teacher': (context) => const HomePageTeacherScreen(),
+        '/moderator': (context) => const HomePageModeratorScreen(),
+        '/profile': (context) => ProfileScreen(),
+        '/calendar': (context) => CalendarViewScreen()
       },
     );
   }
