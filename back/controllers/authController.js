@@ -2,11 +2,13 @@ const User = require("../models/User");
 const Teacher = require("../models/Teacher");
 const Student = require("../models/Student");
 const Promotion = require("../models/Promotion");
+const Moderator = require("../models/Moderator");
 const Lesson = require("../models/Lesson");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res) => {
+  console.log("Trying to register...");
   const { email, password, role, firstname, lastname, age } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -19,10 +21,19 @@ exports.register = async (req, res) => {
     } else if (role === "student") {
       const student = new Student({ user: user._id, firstname, lastname, age });
       await student.save();
+    } else if (role === "moderator") {
+      const student = new Moderator({
+        user: user._id,
+        firstname,
+        lastname,
+        age,
+      });
+      await student.save();
     }
 
     res.status(201).json({ message: "User registered" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -45,7 +56,6 @@ exports.login = async (req, res) => {
     res
       .status(200)
       .json({ message: "Succesfully authenticated", token: token });
-    console.log("Data sent : ", token);
   } catch (error) {
     res
       .status(500)
@@ -69,10 +79,11 @@ exports.getUserInfo = async (req, res) => {
         })
         .populate({
           path: "lessons",
-          populate: {
-            path: "students.data",
-            select: "firstname lastname age",
-          },
+          select: "title description date duration students sessionToken _id",
+          // populate: {
+          //   path: "students",
+          //   select: "firstname lastname isPresent -_id",
+          // },
         });
     } else if (user.roles.includes("student")) {
       userInfo = await Student.findOne({ user: user._id }).populate({
@@ -86,68 +97,128 @@ exports.getUserInfo = async (req, res) => {
         // },
       });
     } else if (user.roles.includes("moderator")) {
-      userInfo = await Moderator.findOne({ user: user._id }).populate({});
+      userInfo = await Moderator.findOne({ user: user._id });
     }
 
     // Récupération des informations détaillées des promotions
     let promotions = [];
-    for (const promotion of userInfo.promotions) {
-      const foundPromotion = await Promotion.findById(promotion._id).lean();
-      if (foundPromotion) {
-        const lessonIds = foundPromotion.lessons.map((lesson) => lesson._id);
-        let lessons = await Lesson.find({ _id: { $in: lessonIds } }).lean();
+    if (!user.roles.includes("moderator")) {
+      for (const promotion of userInfo.promotions) {
+        const foundPromotion = await Promotion.findById(promotion._id).lean();
+        if (foundPromotion) {
+          const lessonIds = foundPromotion.lessons.map((lesson) => lesson._id);
+          let lessons = await Lesson.find({ _id: { $in: lessonIds } }).lean();
 
-        for (const lesson of lessons) {
-          const studentIds = lesson.students.map((student) => student._id);
-          const students = await Student.find({
+          for (const lesson of lessons) {
+            const studentIds = lesson.students.map((student) => student._id);
+            const students = await Student.find({
+              _id: { $in: studentIds },
+            }).lean();
+
+            let studentsWithPresence = students.map((student) => {
+              const lessonStudent = lesson.students.find(
+                (ls) => ls._id.toString() === student._id.toString()
+              );
+              return {
+                ...student,
+                isPresent: lessonStudent?.isPresent || false,
+              };
+            });
+
+            const teacherIds = lesson.teachers.map((teacher) => teacher._id);
+            let teachers = await Teacher.find({
+              _id: { $in: teacherIds },
+            }).lean();
+
+            // Formater les données filtrer les données sensibles
+            teachers = filterTeachers(teachers);
+            studentsWithPresence = filterStudents(studentsWithPresence);
+
+            // Assigner les étudiants et teachers à la lesson
+            lesson.students = studentsWithPresence;
+            lesson.teachers = teachers;
+          }
+
+          const studentIds = foundPromotion.students.map(
+            (student) => student._id
+          );
+          let studentsInPromotion = await Student.find({
             _id: { $in: studentIds },
           }).lean();
 
-          let studentsWithPresence = students.map((student) => {
-            const lessonStudent = lesson.students.find(
-              (ls) => ls._id.toString() === student._id.toString()
-            );
-            return {
-              ...student,
-              isPresent: lessonStudent?.isPresent || false,
-            };
-          });
-
-          const teacherIds = lesson.teachers.map((teacher) => teacher._id);
-          let teachers = await Teacher.find({
-            _id: { $in: teacherIds },
-          }).lean();
+          studentsInPromotion = filterStudents(studentsInPromotion);
 
           // Formater les données filtrer les données sensibles
-          teachers = filterTeachers(teachers);
-          studentsWithPresence = filterStudents(studentsWithPresence);
+          lessons = filterLessons(lessons);
+          foundPromotion.lessons = lessons;
+          foundPromotion.students = studentsInPromotion;
+          promotions.push(foundPromotion);
 
-          // Assigner les étudiants et teachers à la lesson
-          lesson.students = studentsWithPresence;
-          lesson.teachers = teachers;
+          // Formater les données des promotions pout filtrer les données sensibles
+          promotions = filterPromotions(promotions);
+        }
+      }
+    }
+
+    let lessons = user.roles.includes("teacher") ? userInfo.lessons : undefined;
+
+    if (user.roles.includes("teacher")) {
+      const updatedLessons = [];
+      for (const lesson of lessons) {
+        const lessonObj = lesson.toObject();
+        let populatedStudents = [];
+        for (const student of lessonObj.students) {
+          const studentInfo = await Student.findById(student._id).lean();
+          if (studentInfo) {
+            // console.log("Student found");
+            studentInfo.isPresent = student.isPresent;
+            populatedStudents.push(studentInfo);
+          } else {
+            // console.log("Student not found");
+          }
         }
 
-        // Formater les données filtrer les données sensibles
-        lessons = filterLessons(lessons);
-        foundPromotion.lessons = lessons;
-        promotions.push(foundPromotion);
+        // Find the lesson in the database
+        const lessonInfo = await Lesson.findById(lessonObj._id).lean();
+        if (!lessonInfo) {
+          console.log("Lesson not found");
+        } else {
+          let populatedPromotions = [];
+          for (const promotion of lessonInfo.promotions) {
+            const promotionInfo = await Promotion.findById(
+              promotion.toString()
+            ).lean();
+            if (promotionInfo) {
+              populatedPromotions.push(promotionInfo.name);
+            } else {
+              console.log("Promotion not found");
+            }
+          }
+          lessonObj.promotions = populatedPromotions;
+        }
 
-        // Formater les données des promotions pout filtrer les données sensibles
-        promotions = filterPromotions(promotions);
+        populatedStudents = filterStudents(populatedStudents);
+        lessonObj.students = populatedStudents;
+        updatedLessons.push(lessonObj);
       }
+      lessons = updatedLessons;
+    }
+
+    if (user.roles.includes("moderator")) {
+      promotions = undefined;
     }
 
     const dataToSend = {
       user: {
+        id: userInfo._id,
         email: user.email,
         roles: user.roles,
         firstname: userInfo.firstname,
         lastname: userInfo.lastname,
         age: userInfo.age,
       },
-      // promotions: userInfo.promotions,
-      promotions, // Envoie toutes les informations des promotions récupérées
-      // lessons, // Vous pouvez ajouter les leçons si nécessaire
+      promotions,
+      lessons,
     };
 
     res.json(dataToSend);
@@ -162,27 +233,30 @@ const filterPromotions = (promotions) => {
     name: promotion.name,
     year: promotion.year,
     lessons: promotion.lessons,
+    students: promotion.students,
   }));
 };
 const filterLessons = (lessons) => {
   return lessons.map((lesson) => ({
+    id: lesson._id,
     title: lesson.title,
     description: lesson.description,
     date: lesson.date,
     duration: lesson.duration,
     teachers: lesson.teachers,
     students: lesson.students,
+    // promotions: lesson.promotions,
   }));
 };
 const filterTeachers = (teachers) => {
   return teachers.map((teacher) => ({
-    fisrtname: teacher.firstname,
+    firstname: teacher.firstname,
     lastname: teacher.lastname,
   }));
 };
 const filterStudents = (students) => {
   return students.map((student) => ({
-    fisrtname: student.firstname,
+    firstname: student.firstname,
     lastname: student.lastname,
     isPresent: student.isPresent,
   }));

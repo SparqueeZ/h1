@@ -43,7 +43,7 @@ const LessonSchema = new Schema({
   ],
   students: [
     {
-      data: {
+      student: {
         type: Schema.Types.ObjectId,
         ref: "Student",
         required: false,

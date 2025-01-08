@@ -8,7 +8,7 @@ part of 'promotion.dart';
 
 class PromotionAdapter extends TypeAdapter<Promotion> {
   @override
-  final int typeId = 1;
+  final int typeId = 4;
 
   @override
   Promotion read(BinaryReader reader) {
@@ -17,22 +17,28 @@ class PromotionAdapter extends TypeAdapter<Promotion> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Promotion(
-      name: fields[0] as String,
-      year: fields[1] as int,
-      lessons: (fields[2] as List).cast<Lesson>(),
+      id: fields[0] as String,
+      name: fields[1] as String,
+      year: fields[2] as int,
+      lessons: (fields[3] as List).cast<Lesson>(),
+      students: (fields[4] as List).cast<Student>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Promotion obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(5)
       ..writeByte(0)
-      ..write(obj.name)
+      ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.year)
+      ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.lessons);
+      ..write(obj.year)
+      ..writeByte(3)
+      ..write(obj.lessons)
+      ..writeByte(4)
+      ..write(obj.students);
   }
 
   @override

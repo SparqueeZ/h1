@@ -8,7 +8,7 @@ part of 'lesson.dart';
 
 class LessonAdapter extends TypeAdapter<Lesson> {
   @override
-  final int typeId = 2;
+  final int typeId = 1;
 
   @override
   Lesson read(BinaryReader reader) {
@@ -17,31 +17,46 @@ class LessonAdapter extends TypeAdapter<Lesson> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Lesson(
-      title: fields[0] as String,
-      description: fields[1] as String,
-      date: fields[2] as DateTime,
-      duration: fields[3] as int,
-      teachers: (fields[4] as List).cast<Teacher>(),
-      students: (fields[5] as List).cast<Student>(),
+      id: fields[0] as String,
+      title: fields[1] as String,
+      description: fields[2] as String,
+      date: fields[3] as DateTime,
+      duration: fields[4] as int,
+      teachers: (fields[5] as List).cast<Teacher>(),
+      students: (fields[6] as List).cast<Student>(),
+      promotions: (fields[7] as List).cast<String>(),
+      startTime: fields[8] as TimeOfDay,
+      endTime: fields[9] as TimeOfDay,
+      sessionToken: fields[10] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, Lesson obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(11)
       ..writeByte(0)
-      ..write(obj.title)
+      ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.description)
+      ..write(obj.title)
       ..writeByte(2)
-      ..write(obj.date)
+      ..write(obj.description)
       ..writeByte(3)
-      ..write(obj.duration)
+      ..write(obj.date)
       ..writeByte(4)
-      ..write(obj.teachers)
+      ..write(obj.duration)
       ..writeByte(5)
-      ..write(obj.students);
+      ..write(obj.teachers)
+      ..writeByte(6)
+      ..write(obj.students)
+      ..writeByte(7)
+      ..write(obj.promotions)
+      ..writeByte(8)
+      ..write(obj.startTime)
+      ..writeByte(9)
+      ..write(obj.endTime)
+      ..writeByte(10)
+      ..write(obj.sessionToken);
   }
 
   @override

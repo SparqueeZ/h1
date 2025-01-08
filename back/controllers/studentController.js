@@ -51,9 +51,9 @@ exports.deleteStudent = async (req, res) => {
 
 exports.affectStudentToPromotion = async (req, res) => {
   try {
-    // Add student to student table
+    // Add promotion to student table
     const student = await Student.findById(req.body.studentId);
-    student.promotions = req.body.promotionId;
+    student.promotions.push(req.body.promotionId);
     await student.save();
     // Add student to promotion's student array
     const promotion = await Promotion.findById(req.body.promotionId);
@@ -61,12 +61,42 @@ exports.affectStudentToPromotion = async (req, res) => {
     await promotion.save();
     // Add student to all lessons of the promotion
     const lessons = await Lesson.find({ _id: { $in: promotion.lessons } });
-    for (const lesson of lessons) {
-      lesson.students.push({ student: req.body.studentId, isPresent: false });
-      await lesson.save();
-    }
+    lessons.forEach((l) => {
+      l.students.push({ _id: req.body.studentId, isPresent: false });
+      l.save();
+    });
 
     res.json({ message: "Student succesfully affected to the promotion" });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+exports.removeStudentFromPromotion = async (req, res) => {
+  try {
+    // Remove promotions from student table
+    const student = await Student.findById(req.body.studentId);
+    const promotionIndex = student.promotions.findIndex(
+      (p) => p?.toString() === req.body.promotionId
+    );
+    student.promotions.splice(promotionIndex, 1);
+    await student.save();
+    // Remove student from promotion's student array
+    const promotion = await Promotion.findById(req.body.promotionId);
+    promotion.students = promotion.students.filter(
+      (s) => s !== req.body.studentId
+    );
+    await promotion.save();
+    // Remove student from all lessons of the promotion
+    const lessons = await Lesson.find({ _id: { $in: promotion.lessons } });
+    lessons.forEach(async (l) => {
+      const studentIndex = l.students.findIndex(
+        (s) => s.student?.toString() === req.body.studentId
+      );
+      l.students.splice(studentIndex, 1);
+      await l.save();
+    });
+    res.json({ message: "Student succesfully removed from the promotion" });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -84,32 +114,43 @@ exports.getStudentLessons = async (req, res) => {
 };
 
 exports.changeStudentPresentValue = async (req, res) => {
+  console.log("[INFO] Changing student presence value");
   const { sessionToken, lessonId } = req.body;
   const recievedSessionToken = sessionToken;
   if (!sessionToken || !lessonId || !req.params.id) {
-    res.status(400).json({ message: "Request not successfully filled." });
+    return res
+      .status(400)
+      .json({ message: "Request not successfully filled." });
   }
+
+  console.log("sessionToken:", sessionToken);
+  console.log("lessonId:", lessonId);
+  console.log("studentId:", req.params.id);
 
   try {
     const student = await Student.findById(req.params.id);
     if (!student) {
-      res.status(404).json({ message: "Student not found." });
+      console.error("[ERROR] Student not found.");
+      return res.status(404).json({ message: "Student not found." });
     }
     const lesson = await Lesson.findById(lessonId);
     if (!lesson) {
-      res.status(404).json({ message: "Lesson not found." });
+      console.error("[ERROR] Lesson not found.");
+      return res.status(404).json({ message: "Lesson not found." });
     }
     const index = lesson.students.findIndex(
       (s) => s._id.toString() === student._id.toString()
     );
     // Check if the sessionToken is good
     if (recievedSessionToken !== lesson.sessionToken) {
-      res.status(400).json({ message: "Wrong session token." });
-      return;
+      console.error("[ERROR] Wrong session token.");
+      return res.status(400).json({ message: "Wrong session token." });
     }
     if (index === -1) {
-      res.status(400).json({ message: "Student not found in the lesson." });
-      return;
+      console.error("[ERROR] Student not found in the lesson.");
+      return res
+        .status(400)
+        .json({ message: "Student not found in the lesson." });
     }
     console.log("studentId:", req.params.id);
     console.log("index:", index);
