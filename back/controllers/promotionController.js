@@ -57,13 +57,12 @@ exports.affectLessonToPromotion = async (req, res) => {
     // Ajoute la promotion dans la liste des promotions de lesson
     const lesson = await Lesson.findById(req.body.lessonId);
     lesson.promotions.push(req.body.promotionId);
-    await lesson.save();
     // Ajoute tous les étudiants d'une promotion dans la liste des étudiants de lesson
     const students = await Student.find({ promotions: req.body.promotionId });
     students.forEach(async (student) => {
       lesson.students.push(student._id);
-      await lesson.save();
     });
+    await lesson.save();
     res.json({ message: "Lesson succesfully affected to the promotion" });
   } catch (error) {
     res.status(400).json({ message: error.message });

@@ -2,6 +2,7 @@ const Lesson = require("../models/Lesson");
 const Teacher = require("../models/Teacher");
 
 exports.getAllLessons = async (req, res) => {
+  console.log("[INFO] Trying to get all lessons...");
   try {
     const lessons = await Lesson.find();
     res.json(lessons);
@@ -20,12 +21,14 @@ exports.getLessonById = async (req, res) => {
 };
 
 exports.createLesson = async (req, res) => {
+  console.log("[INFO] Trying to create a lesson...");
   const lessonObject = req.body;
   try {
     const lesson = new Lesson(lessonObject);
     await lesson.save();
     res.json({ message: "Lesson created" });
   } catch (error) {
+    console.error("[ERROR] " + error.message);
     res.status(400).json({ message: error.message });
   }
 };
