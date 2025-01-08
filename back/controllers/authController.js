@@ -8,7 +8,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res) => {
-  console.log("Trying to register...");
+  console.log("[INFO] Trying to register...");
   const { email, password, role, firstname, lastname, age } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
